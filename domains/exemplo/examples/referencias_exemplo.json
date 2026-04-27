@@ -1,0 +1,12 @@
+{
+  "referencias": [
+    {
+      "codigo": "A001",
+      "descricao": "Codigo valido 1"
+    },
+    {
+      "codigo": "A002",
+      "descricao": "Codigo valido 2"
+    }
+  ]
+}

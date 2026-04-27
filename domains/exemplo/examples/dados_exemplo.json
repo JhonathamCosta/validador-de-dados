@@ -1,0 +1,19 @@
+{
+  "dados": [
+    {
+      "codigo": "A001",
+      "descricao": "Registro valido",
+      "ativo": true
+    },
+    {
+      "codigo": "",
+      "descricao": "Registro sem codigo",
+      "ativo": true
+    },
+    {
+      "codigo": "A999",
+      "descricao": "Codigo fora da referencia",
+      "ativo": false
+    }
+  ]
+}
