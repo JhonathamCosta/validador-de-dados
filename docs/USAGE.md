@@ -15,6 +15,20 @@ No diretorio raiz do projeto:
 streamlit run ui/streamlit_app/app.py
 ```
 
+Metadados visuais da UI:
+- o arquivo `ui/streamlit_app/metadata.json` controla o `title` e a `caption` exibidos no frontend;
+- o arquivo `ui/streamlit_app/metadata.example.json` serve como modelo para novos ambientes;
+- se `metadata.json` nao existir, a aplicacao tenta usar o arquivo de exemplo e, por ultimo, os valores padrao do codigo.
+
+Exemplo de configuracao:
+
+```json
+{
+    "title": "Meu Validador de Dados",
+    "caption": "Painel interno para execucao das regras de validacao."
+}
+```
+
 Fluxo da tela:
 1. Selecione o dominio.
 2. Informe o usuario (opcional, default `admin`).

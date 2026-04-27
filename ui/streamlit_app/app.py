@@ -19,9 +19,32 @@ from adapters.inputs.json import JsonInputAdapter
 from core.application import run_validation_job
 from domains import DOMAIN_REGISTRY, get_domain_input_specs
 
-APP_TITLE = "Data Validation Kernel"
+APP_METADATA_PATH = Path(__file__).with_name("metadata.json")
+APP_METADATA_EXAMPLE_PATH = Path(__file__).with_name("metadata.example.json")
+DEFAULT_APP_METADATA = {
+    "title": "Data Validation Kernel",
+    "caption": "Upload de base, execucao de regras e relatorio padronizado.",
+}
 UPLOAD_DIR = Path(".runtime_uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+
+def _load_app_metadata():
+    for metadata_path in [APP_METADATA_PATH, APP_METADATA_EXAMPLE_PATH]:
+        if not metadata_path.exists():
+            continue
+
+        try:
+            data = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        return {
+            "title": data.get("title") or DEFAULT_APP_METADATA["title"],
+            "caption": data.get("caption") or DEFAULT_APP_METADATA["caption"],
+        }
+
+    return DEFAULT_APP_METADATA.copy()
 
 
 def _save_uploaded_file(uploaded_file) -> Path:
@@ -124,9 +147,11 @@ def _build_excel_report(report) -> bytes:
 
 
 def main():
-    st.set_page_config(page_title=APP_TITLE, layout="wide")
-    st.title(APP_TITLE)
-    st.caption("Upload de base, execucao de regras e relatorio padronizado.")
+    app_metadata = _load_app_metadata()
+
+    st.set_page_config(page_title=app_metadata["title"], layout="wide")
+    st.title(app_metadata["title"])
+    st.caption(app_metadata["caption"])
 
     domain_options = sorted(DOMAIN_REGISTRY.keys())
     if not domain_options:

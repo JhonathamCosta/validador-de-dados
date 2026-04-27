@@ -71,6 +71,81 @@ docs/
   USAGE.md
 ```
 
+## Instalação e configuração
+
+### Pré-requisitos
+
+- Python 3.10+;
+- `pip` disponível no ambiente.
+
+### 1. Clonar o repositório
+
+```bash
+git clone <url-do-repositorio>
+cd validador-de-dados
+```
+
+Se você já está com o repositório aberto localmente, pode seguir para o próximo passo.
+
+### 2. Criar e ativar ambiente virtual
+
+No Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+No Linux/macOS:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Instalar dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+Dependências atuais do projeto:
+
+- `streamlit`;
+- `XlsxWriter`;
+- `openpyxl`.
+
+### 4. Executar a interface
+
+```bash
+streamlit run ui/streamlit_app/app.py
+```
+
+Depois disso, abra a URL exibida pelo Streamlit no navegador.
+
+Para personalizar o nome exibido no frontend, edite `ui/streamlit_app/metadata.json`.
+Um exemplo pronto foi adicionado em `ui/streamlit_app/metadata.example.json`.
+
+### 5. Estrutura mínima para desenvolvimento
+
+Ao subir o projeto localmente:
+
+- as regras de negócio ficam em `domains/`;
+- os adapters de entrada ficam em `adapters/inputs/`;
+- a UI atual fica em `ui/streamlit_app/`;
+- exemplos de arquivos do domínio versionado ficam em `domains/exemplo/examples/`.
+
+### 6. Configuração de novos domínios
+
+Para adaptar o projeto ao seu caso de uso:
+
+1. crie um novo módulo em `domains/<nome_do_dominio>/`;
+2. implemente as regras em `domains/<nome_do_dominio>/rules/`;
+3. exponha `get_rules()` no `registry.py` do domínio;
+4. registre o domínio em `domains/__init__.py`.
+
+Mais detalhes de uso e extensão estão em `docs/USAGE.md`.
+
 ## Entry point recomendado
 
 Use `core.application.run_validation_job(...)` como ponto único para front-end, CLI ou automação.
