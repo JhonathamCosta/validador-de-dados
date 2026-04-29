@@ -17,7 +17,7 @@ from adapters.inputs.csv import CsvInputAdapter
 from adapters.inputs.excel import ExcelInputAdapter
 from adapters.inputs.json import JsonInputAdapter
 from core.application import run_validation_job
-from domains import DOMAIN_REGISTRY, get_domain_input_specs
+from domains import get_domain_input_specs, get_registered_domain_ids
 
 APP_METADATA_PATH = Path(__file__).with_name("metadata.json")
 APP_METADATA_EXAMPLE_PATH = Path(__file__).with_name("metadata.example.json")
@@ -153,7 +153,7 @@ def main():
     st.title(app_metadata["title"])
     st.caption(app_metadata["caption"])
 
-    domain_options = sorted(DOMAIN_REGISTRY.keys())
+    domain_options = get_registered_domain_ids()
     if not domain_options:
         st.error("Nenhum dominio registrado.")
         return

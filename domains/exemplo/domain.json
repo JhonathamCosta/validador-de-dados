@@ -1,0 +1,10 @@
+{
+  "domain_id": "exemplo",
+  "name": "Dominio de exemplo",
+  "version": "1.0.0",
+  "kernel_compatibility": "^1.0.0",
+  "entrypoint": "registry.py",
+  "metadata": {
+    "description": "Dominio embutido usado como referencia para implementacoes externas."
+  }
+}
