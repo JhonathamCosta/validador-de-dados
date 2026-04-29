@@ -154,6 +154,7 @@ Depois aponte o kernel para esse domínio:
 
 ```env
 VALIDATOR_DOMAIN_PATHS=C:\caminho\para\meu-dominio-real
+VALIDATOR_ENABLE_BUILTIN_DOMAINS=false
 ```
 
 Ou, se preferir definir direto no PowerShell:
@@ -164,6 +165,8 @@ streamlit run ui/streamlit_app/app.py
 ```
 
 O arquivo `.env.example` traz a chave esperada para desenvolvimento local.
+
+O domínio `exemplo` interno fica habilitado por padrão para facilitar testes apos o clone. Use `VALIDATOR_ENABLE_BUILTIN_DOMAINS=false` quando quiser listar apenas domínios externos.
 
 Domínios embutidos ainda podem existir em `domains/`, mas o caminho recomendado para regras reais é manter a personalização separada do kernel.
 

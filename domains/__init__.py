@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -10,9 +11,24 @@ load_dotenv()
 _REGISTRY = DomainRegistry()
 
 
+def _env_flag_enabled(name: str, default: bool = True) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
 def _register_builtin_domains() -> None:
+    if not _env_flag_enabled("VALIDATOR_ENABLE_BUILTIN_DOMAINS", default=True):
+        return
+
     builtin_domain_path = Path(__file__).resolve().parent / "exemplo"
-    _REGISTRY.register(load_domain_from_path(builtin_domain_path))
+    if not (builtin_domain_path / "domain.json").exists():
+        return
+
+    domain = load_domain_from_path(builtin_domain_path)
+    if not _REGISTRY.has(domain.domain_id):
+        _REGISTRY.register(domain)
 
 
 def _register_external_domains() -> None:
@@ -20,8 +36,8 @@ def _register_external_domains() -> None:
         _REGISTRY.register(domain)
 
 
-_register_builtin_domains()
 _register_external_domains()
+_register_builtin_domains()
 
 
 DOMAIN_REGISTRY = {domain_id: _REGISTRY.get(domain_id).get_rules for domain_id in _REGISTRY.ids()}

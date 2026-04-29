@@ -52,6 +52,7 @@ Edite `.env`:
 
 ```env
 VALIDATOR_DOMAIN_PATHS=C:\validador-dominios
+VALIDATOR_ENABLE_BUILTIN_DOMAINS=true
 ```
 
 Depois execute:
@@ -85,6 +86,12 @@ C:\validador-dominios\
     domain.json
   rh\
     domain.json
+```
+
+O dominio `exemplo` embutido no kernel vem habilitado por padrao para facilitar testes apos o clone. Em producao ou quando quiser listar somente dominios externos, desligue:
+
+```env
+VALIDATOR_ENABLE_BUILTIN_DOMAINS=false
 ```
 
 Fluxo da tela:
@@ -333,6 +340,7 @@ No ambiente local deste repositorio, se estiver usando o `venv` ja criado:
 5. criar regras em `rules/`;
 6. criar `get_input_specs()` se a UI precisar de uploads dinamicos;
 7. apontar `VALIDATOR_DOMAIN_PATHS` no `.env` para a pasta do dominio ou pasta mae;
-8. executar `python -m pytest`;
-9. rodar `streamlit run ui/streamlit_app/app.py`;
-10. validar o relatorio gerado.
+8. definir `VALIDATOR_ENABLE_BUILTIN_DOMAINS=false` se nao quiser mostrar o exemplo do kernel;
+9. executar `python -m pytest`;
+10. rodar `streamlit run ui/streamlit_app/app.py`;
+11. validar o relatorio gerado.
