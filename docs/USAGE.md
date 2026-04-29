@@ -1,43 +1,110 @@
 # Guia de Uso
 
 Este documento cobre:
-- como executar a ferramenta
-- como rodar uma validacao via codigo
-- como criar novas regras
-- como criar novos dominios
 
-## 1. Como usar a ferramenta
+- como executar a ferramenta;
+- como rodar validacoes via codigo;
+- como criar regras reais;
+- como criar dominios externos ao kernel;
+- como executar os testes com `pytest`.
 
-### 1.1 Executar a interface Streamlit
+## 1. Arquitetura de uso
+
+O projeto deve ser tratado como um kernel reutilizavel.
+
+```text
+validador-de-dados/
+  core/       -> contratos, loader de dominios, engine e aplicacao
+  adapters/   -> leitura de CSV, JSON e Excel
+  ui/         -> Streamlit e outras interfaces
+  domains/    -> apenas dominios embutidos ou de exemplo
+```
+
+Regras reais devem preferencialmente ficar fora deste repositorio, em um pacote de dominio separado:
+
+```text
+meu-dominio-real/
+  domain.json
+  __init__.py
+  registry.py
+  rules/
+    __init__.py
+    minha_regra.py
+```
+
+O kernel carrega dominios externos usando `VALIDATOR_DOMAIN_PATHS`. Em desenvolvimento local, o caminho mais simples e criar um arquivo `.env` na raiz do projeto.
+
+## 2. Executar a interface Streamlit
+
 No diretorio raiz do projeto:
 
-```bash
+```powershell
 streamlit run ui/streamlit_app/app.py
 ```
 
-Metadados visuais da UI:
-- o arquivo `ui/streamlit_app/metadata.json` controla o `title` e a `caption` exibidos no frontend;
-- o arquivo `ui/streamlit_app/metadata.example.json` serve como modelo para novos ambientes;
-- se `metadata.json` nao existir, a aplicacao tenta usar o arquivo de exemplo e, por ultimo, os valores padrao do codigo.
+Com dominio externo via `.env`, copie o exemplo:
 
-Exemplo de configuracao:
+```powershell
+Copy-Item .env.example .env
+```
 
-```json
-{
-    "title": "Meu Validador de Dados",
-    "caption": "Painel interno para execucao das regras de validacao."
-}
+Edite `.env`:
+
+```env
+VALIDATOR_DOMAIN_PATHS=C:\validador-dominios
+```
+
+Depois execute:
+
+```powershell
+streamlit run ui/streamlit_app/app.py
+```
+
+Tambem e possivel definir a variavel diretamente no PowerShell, sem `.env`:
+
+```powershell
+$env:VALIDATOR_DOMAIN_PATHS="C:\caminho\para\meu-dominio-real"
+streamlit run ui/streamlit_app/app.py
+```
+
+Com mais de um dominio externo, separe os caminhos com `;` no Windows:
+
+```env
+VALIDATOR_DOMAIN_PATHS=C:\dominios\financeiro;C:\dominios\rh
+```
+
+Voce tambem pode apontar para uma pasta mae. O loader procura subpastas que tenham `domain.json`:
+
+```env
+VALIDATOR_DOMAIN_PATHS=C:\validador-dominios
+```
+
+```text
+C:\validador-dominios\
+  financeiro\
+    domain.json
+  rh\
+    domain.json
 ```
 
 Fluxo da tela:
-1. Selecione o dominio.
-2. Informe o usuario (opcional, default `admin`).
-3. Envie um arquivo `CSV`, `JSON` ou `XLSX`.
-4. Clique em `Validar`.
-5. Veja o resumo e baixe o relatorio em `JSON` ou `Excel`.
 
-### 1.2 Executar via codigo (sem UI)
-Use a camada de aplicacao `run_validation_job`:
+1. selecione o dominio;
+2. informe o usuario;
+3. envie os arquivos exigidos pelo dominio;
+4. clique em `Validar`;
+5. veja o resumo;
+6. baixe o relatorio em JSON ou Excel.
+
+Metadados visuais da UI:
+
+- `ui/streamlit_app/metadata.json` controla `title` e `caption`;
+- `ui/streamlit_app/metadata.example.json` serve como modelo;
+- se nenhum arquivo existir, a UI usa valores padrao do codigo.
+
+## 3. Executar via codigo
+
+Use `run_validation_job` como entry point unico para UI, CLI, scripts ou automacoes.
 
 ```python
 from adapters.inputs.csv import CsvInputAdapter
@@ -59,12 +126,13 @@ report = run_validation_job(
 print(report.total_fail)
 ```
 
-## 2. Adapters disponiveis
+## 4. Adapters disponiveis
 
 Arquivos em `adapters/inputs/`:
-- `CsvInputAdapter`
-- `JsonInputAdapter`
-- `ExcelInputAdapter`
+
+- `CsvInputAdapter`;
+- `JsonInputAdapter`;
+- `ExcelInputAdapter`.
 
 Todos retornam um `bundle` no formato:
 
@@ -72,96 +140,120 @@ Todos retornam um `bundle` no formato:
 {
     "dados": [
         {"coluna_a": "...", "coluna_b": "..."},
-        ...
     ]
 }
 ```
 
 Se quiser outra chave, ajuste `bundle_key` ao instanciar o adapter.
 
-Dominio de exemplo versionado no repositorio:
+## 5. Criar uma regra
 
-`domains/exemplo/`
+Cada regra deve expor:
 
-Arquivos de entrada desse dominio:
+- `name`;
+- `rule_id`;
+- `run(bundle, context) -> dict`.
 
-`domains/exemplo/examples/dados_exemplo.json`
+Retorno minimo:
 
-`domains/exemplo/examples/referencias_exemplo.json`
+- `count`.
 
-## 3. Como criar novas validacoes (rules)
+Campos recomendados:
 
-### 3.1 Criar arquivo da regra
-Crie um arquivo em:
-
-`domains/<dominio>/rules/<nome_da_regra>.py`
+- `details`;
+- `severity`;
+- `message`;
+- `status`, quando a regra quiser controlar explicitamente `PASS`, `FAIL`, `WARNING` ou `ERROR`.
 
 Exemplo:
 
 ```python
-class CheckMissingFarmRule:
-    name = "missing_farm"
-    rule_id = "missing_farm"
+class CodigoObrigatorioRule:
+    name = "codigo_obrigatorio"
+    rule_id = "codigo_obrigatorio"
 
     def run(self, bundle, context):
         rows = bundle.get("dados", [])
-        missing = [row for row in rows if not row.get("fazenda")]
+        invalidos = [
+            row
+            for row in rows
+            if not str(row.get("codigo") or "").strip()
+        ]
 
         return {
-            "count": len(missing),
-            "details": missing,
+            "count": len(invalidos),
+            "details": invalidos,
             "severity": "HIGH",
-            "message": "Fazenda ausente encontrada." if missing else None,
+            "message": "Existem registros sem codigo." if invalidos else None,
         }
 ```
 
-### 3.2 Contrato obrigatorio da regra
-A regra deve ter:
-- `name`
-- (recomendado) `rule_id`
-- `run(bundle, context) -> dict`
+## 6. Criar um dominio externo
 
-Retorno minimo:
-- `count`
+Estrutura recomendada:
 
-Campos recomendados:
-- `details`
-- `severity`
-- `message`
-- `status` (opcional; se nao informado, o executor infere `PASS`/`FAIL` por `count`)
-
-### 3.3 Registrar regra no dominio
-No `registry.py` do dominio:
-
-```python
-from .rules.missing_farm import CheckMissingFarmRule
-
-def get_rules():
-    return [CheckMissingFarmRule()]
+```text
+meu-dominio-real/
+  domain.json
+  __init__.py
+  registry.py
+  rules/
+    __init__.py
+    codigo_obrigatorio.py
 ```
 
-Se o dominio precisar de uploads dinamicos, ele tambem pode expor:
+### 6.1 Manifest `domain.json`
+
+```json
+{
+  "domain_id": "meu_dominio",
+  "name": "Meu Dominio Real",
+  "version": "1.0.0",
+  "kernel_compatibility": "^1.0.0",
+  "entrypoint": "registry.py"
+}
+```
+
+Campos obrigatorios:
+
+- `domain_id`: identificador usado pela API e pela UI;
+- `version`: versao do dominio;
+- `kernel_compatibility`: versao de contrato do kernel aceita pelo dominio;
+- `entrypoint`: arquivo Python que expoe `get_rules()`.
+
+Campos opcionais:
+
+- `name`;
+- `metadata`.
+
+### 6.2 `registry.py`
 
 ```python
+from .rules.codigo_obrigatorio import CodigoObrigatorioRule
+
+def get_rules():
+    return [
+        CodigoObrigatorioRule(),
+    ]
+
 def get_input_specs():
     return [
         {
             "key": "dados",
-            "label": "Dados principais",
+            "label": "Base principal",
             "required": True,
             "formats": ["csv", "json", "xlsx", "xlsm"],
-        },
-        {
-            "key": "referencias",
-            "label": "Base de referencias",
-            "required": True,
-            "formats": ["csv", "json", "xlsx", "xlsm"],
-        },
+        }
     ]
 ```
 
-### 3.4 Quando a validacao precisa de duas bases ou mais
-O `bundle` nao precisa conter apenas uma lista. Ele pode carregar varias bases ao mesmo tempo:
+`get_rules()` e obrigatorio.
+
+`get_input_specs()` e opcional. Quando informado, a UI usa esse metadado para abrir os uploads dinamicamente.
+
+## 7. Validacoes com mais de uma base
+
+O `bundle` pode conter varias bases:
 
 ```python
 bundle = {
@@ -188,7 +280,8 @@ class CheckFarmExistsRule:
         fazendas_validas = {row["codigo"] for row in fazendas}
 
         invalidos = [
-            row for row in apontamentos
+            row
+            for row in apontamentos
             if row.get("fazenda") and row["fazenda"] not in fazendas_validas
         ]
 
@@ -200,58 +293,46 @@ class CheckFarmExistsRule:
         }
 ```
 
-No estado atual do projeto, a UI usa esse metadado para abrir os uploads dinamicamente e a camada de aplicacao consolida tudo em um unico `bundle`.
+## 8. Executar testes
 
-## 4. Como criar novos dominios
+Instale as dependencias:
 
-### 4.1 Estrutura de pastas
-Crie:
-
-```text
-domains/
-  novo_dominio/
-    __init__.py
-    registry.py
-    rules/
-      __init__.py
-      minha_regra.py
+```powershell
+pip install -r requirements.txt
 ```
 
-### 4.2 Implementar `registry.py`
+Execute:
 
-```python
-from .rules.minha_regra import MinhaRegra
-
-def get_rules():
-    return [MinhaRegra()]
+```powershell
+python -m pytest
 ```
 
-### 4.3 Expor o dominio no registro global
-Edite `domains/__init__.py` e adicione:
+No ambiente local deste repositorio, se estiver usando o `venv` ja criado:
 
-```python
-from .novo_dominio.registry import get_rules as get_novo_dominio_rules
-
-DOMAIN_REGISTRY = {
-    "novo_dominio": get_novo_dominio_rules,
-}
+```powershell
+.\venv\Scripts\python.exe -m pytest
 ```
 
-Depois disso, o dominio aparece automaticamente no select do Streamlit.
+## 9. Boas praticas para regras reais
 
-## 5. Boas praticas
+- mantenha regras pequenas e com responsabilidade unica;
+- use `rule_id` estavel para rastreabilidade;
+- nao coloque logica de regra na UI;
+- nao importe codigo interno do kernel que nao esteja em `core.contracts`;
+- prefira deixar dominios reais fora do repositorio do kernel;
+- crie testes no repositorio do dominio real;
+- use dados de exemplo anonimizados;
+- versione kernel e dominio separadamente.
 
-- Mantenha regras pequenas e com responsabilidade unica.
-- Use `rule_id` estavel para rastreabilidade.
-- Nao coloque logica de regra na UI.
-- Padronize o `bundle_key` por dominio (ex.: `dados`).
-- Crie testes para cada regra critica.
+## 10. Checklist para subir um dominio real
 
-## 6. Checklist rapido para subir um novo dominio
-
-1. Criar pasta `domains/<dominio>/`.
-2. Criar pelo menos 1 regra em `rules/`.
-3. Implementar `get_rules()` no `registry.py`.
-4. Registrar dominio em `domains/__init__.py`.
-5. Executar via Streamlit ou `run_validation_job`.
-6. Validar o resultado (`PASS/FAIL/ERROR`) no relatorio.
+1. criar uma pasta ou repositorio externo para o dominio;
+2. criar `domain.json`;
+3. criar `__init__.py`;
+4. criar `registry.py` com `get_rules()`;
+5. criar regras em `rules/`;
+6. criar `get_input_specs()` se a UI precisar de uploads dinamicos;
+7. apontar `VALIDATOR_DOMAIN_PATHS` no `.env` para a pasta do dominio ou pasta mae;
+8. executar `python -m pytest`;
+9. rodar `streamlit run ui/streamlit_app/app.py`;
+10. validar o relatorio gerado.

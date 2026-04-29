@@ -2,7 +2,7 @@
 
 Este projeto é uma base extensível para criar validadores de dados específicos por domínio.
 
-O repositório público contém o kernel, adapters, contratos, UI inicial e um domínio de exemplo. As regras reais devem ser implementadas em módulos próprios dentro de `domains/`, permitindo adaptar o validador para diferentes áreas, processos e fontes de dados.
+O repositório público contém o kernel, adapters, contratos, UI inicial e um domínio de exemplo. As regras reais devem preferencialmente ficar fora deste repositório, em pacotes de domínio carregados pelo kernel via contrato e manifest `domain.json`.
 
 ## Objetivo
 
@@ -113,7 +113,8 @@ Dependências atuais do projeto:
 
 - `streamlit`;
 - `XlsxWriter`;
-- `openpyxl`.
+- `openpyxl`;
+- `pytest`.
 
 ### 4. Executar a interface
 
@@ -137,12 +138,34 @@ Ao subir o projeto localmente:
 
 ### 6. Configuração de novos domínios
 
-Para adaptar o projeto ao seu caso de uso:
+Para adaptar o projeto ao seu caso de uso, prefira criar o domínio fora do repositório do kernel:
 
-1. crie um novo módulo em `domains/<nome_do_dominio>/`;
-2. implemente as regras em `domains/<nome_do_dominio>/rules/`;
-3. exponha `get_rules()` no `registry.py` do domínio;
-4. registre o domínio em `domains/__init__.py`.
+```text
+meu-dominio-real/
+  domain.json
+  __init__.py
+  registry.py
+  rules/
+    __init__.py
+    minha_regra.py
+```
+
+Depois aponte o kernel para esse domínio:
+
+```env
+VALIDATOR_DOMAIN_PATHS=C:\caminho\para\meu-dominio-real
+```
+
+Ou, se preferir definir direto no PowerShell:
+
+```powershell
+$env:VALIDATOR_DOMAIN_PATHS="C:\caminho\para\meu-dominio-real"
+streamlit run ui/streamlit_app/app.py
+```
+
+O arquivo `.env.example` traz a chave esperada para desenvolvimento local.
+
+Domínios embutidos ainda podem existir em `domains/`, mas o caminho recomendado para regras reais é manter a personalização separada do kernel.
 
 Mais detalhes de uso e extensão estão em `docs/USAGE.md`.
 

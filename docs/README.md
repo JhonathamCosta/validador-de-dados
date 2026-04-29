@@ -1,3 +1,3 @@
 # Docs
 
-- Guia de uso da ferramenta: `docs/USAGE.md`
+- Guia de uso da ferramenta e criacao de dominios externos: `docs/USAGE.md`

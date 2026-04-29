@@ -1,7 +1,11 @@
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from core.kernel.domain_loader import get_domain_search_paths, load_domain_from_path, load_domains_from_paths
 from core.kernel.domain_registry import DomainRegistry
+
+load_dotenv()
 
 _REGISTRY = DomainRegistry()
 

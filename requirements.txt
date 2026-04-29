@@ -2,3 +2,4 @@ streamlit
 XlsxWriter
 openpyxl
 pytest
+python-dotenv

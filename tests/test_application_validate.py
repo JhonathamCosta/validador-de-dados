@@ -1,4 +1,6 @@
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 from uuid import uuid4
 
@@ -153,4 +155,75 @@ def test_loads_external_domain_package_from_manifest():
         assert domain.get_rules()[0].rule_id == "always_fail"
         assert domain.get_input_specs()[0]["formats"] == ["json"]
     finally:
+        shutil.rmtree(temp_root, ignore_errors=True)
+
+
+def test_domains_package_loads_external_domain_from_dotenv():
+    temp_root = Path(".runtime_uploads") / f"pytest_dotenv_{uuid4().hex}"
+    domain_path = temp_root / "dotenv_domain"
+    rules_path = domain_path / "rules"
+    env_path = Path(".env")
+    previous_env = env_path.read_text(encoding="utf-8") if env_path.exists() else None
+    try:
+        rules_path.mkdir(parents=True)
+        (domain_path / "__init__.py").write_text("", encoding="utf-8")
+        (rules_path / "__init__.py").write_text(
+            "from .always_pass import AlwaysPassRule\n",
+            encoding="utf-8",
+        )
+        (rules_path / "always_pass.py").write_text(
+            "\n".join(
+                [
+                    "class AlwaysPassRule:",
+                    "    name = 'always_pass'",
+                    "    rule_id = 'always_pass'",
+                    "    def run(self, bundle, context):",
+                    "        return {'count': 0, 'details': [], 'severity': 'LOW'}",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        (domain_path / "registry.py").write_text(
+            "\n".join(
+                [
+                    "from .rules import AlwaysPassRule",
+                    "",
+                    "def get_rules():",
+                    "    return [AlwaysPassRule()]",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        (domain_path / "domain.json").write_text(
+            "\n".join(
+                [
+                    "{",
+                    '  "domain_id": "dotenv_domain",',
+                    '  "version": "1.0.0",',
+                    '  "kernel_compatibility": "^1.0.0",',
+                    '  "entrypoint": "registry.py"',
+                    "}",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        env_path.write_text(f"VALIDATOR_DOMAIN_PATHS={temp_root}\n", encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "from domains import get_registered_domain_ids; print('|'.join(get_registered_domain_ids()))",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        assert "dotenv_domain" in result.stdout.split("|")
+    finally:
+        if previous_env is None:
+            env_path.unlink(missing_ok=True)
+        else:
+            env_path.write_text(previous_env, encoding="utf-8")
         shutil.rmtree(temp_root, ignore_errors=True)
