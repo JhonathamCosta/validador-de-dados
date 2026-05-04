@@ -155,12 +155,12 @@ def main():
 
     domain_options = get_registered_domain_ids()
     if not domain_options:
-        st.error("Nenhum dominio registrado.")
+        st.error("Nenhuma regra registrada.")
         return
 
     col1, col2 = st.columns(2)
     with col1:
-        domain_id = st.selectbox("Dominio", options=domain_options)
+        domain_id = st.selectbox("Validação", options=domain_options)
     with col2:
         user_name = st.text_input("Usuario", value="admin")
 
